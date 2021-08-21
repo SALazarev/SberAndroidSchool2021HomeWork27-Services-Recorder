@@ -2,4 +2,6 @@
     <string name="app_name">HomeWork27ServicesRecorder</string>
     <string name="record">Record</string>
     <string name="play">Play</string>
+    <string name="record_sound">Запись звука</string>
+    <string name="recorder">Диктофон</string>
 </resources>
