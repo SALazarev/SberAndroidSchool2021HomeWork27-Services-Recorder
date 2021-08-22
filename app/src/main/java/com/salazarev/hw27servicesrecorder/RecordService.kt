@@ -62,13 +62,9 @@ class RecordService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notificationManager = NotificationManagerCompat.from(this)
-        }
+        notificationManager = NotificationManagerCompat.from(this)
         createNotificationChannel()
     }
-
 
 
     private fun createNotificationChannel() {
@@ -111,6 +107,7 @@ class RecordService : Service() {
 
     private fun stopRecord() {
         mediaRecorder?.stop()
+        recordStatus = RecordState.PAUSE
     }
 
     private fun pauseRecord() {
@@ -203,9 +200,13 @@ class RecordService : Service() {
 
     override fun onUnbind(intent: Intent?): Boolean {
         Log.d("TAG", "unbind")
-        stopRecord()
-        stopTimerTask()
-        recordListener.isRecordered()
+        notificationManager.cancel(NOTIFICATION_ID)
+        if (recordStatus == RecordState.RECORD) {
+            recordTime = 0
+            stopRecord()
+            stopTimerTask()
+            recordListener.isRecordered()
+        }
         return super.onUnbind(intent)
     }
 
@@ -238,13 +239,13 @@ class RecordService : Service() {
                 startTimerTask()
             }
             ACTION_STOP_SERVICE -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    notificationManager.cancelAll()
+                notificationManager.cancel(NOTIFICATION_ID)
+                if (recordStatus == RecordState.RECORD) {
+                    recordTime = 0
+                    stopRecord()
+                    stopTimerTask()
+                    recordListener.isRecordered()
                 }
-                recordTime = 0
-                stopRecord()
-                stopTimerTask()
-                recordListener.isRecordered()
             }
         }
     }

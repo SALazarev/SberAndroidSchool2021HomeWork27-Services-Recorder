@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity() {
             service.setListener(object : com.salazarev.hw27servicesrecorder.RecordListener {
                 override fun isRecordered() {
                     if (checkFindFilePermission()) updateAdapter(viewModel.getRecordItems())
+                   unbind()
                 }
 
             })
@@ -54,6 +55,12 @@ class MainActivity : AppCompatActivity() {
         override fun onServiceDisconnected(arg0: ComponentName) {
             mBound = false
         }
+    }
+
+    private fun unbind() {
+        unbindService(connection)
+        val intent = Intent(this, RecordService::class.java)
+        stopService(intent)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
