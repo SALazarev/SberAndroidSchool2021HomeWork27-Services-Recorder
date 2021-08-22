@@ -9,6 +9,7 @@ import android.widget.RemoteViews
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -28,12 +29,13 @@ class RecordService : Service() {
         private const val CHANNEL_ID = "CHANNEL_ID_1"
         private const val ACTION_PLAY = "ACTION_PLAY"
 
+        const val FOLDER_NAME = "ServiceRecorder"
         private const val FILE_NAME_FORMAT = "dd_MM_yyyy-HH_mm_ss"
     }
 
     private var recordStatus = RecordState.RECORD
 
-    private val fileDir = "${Environment.getExternalStorageDirectory()}/Record/"
+    private val fileDir = "${Environment.getExternalStorageDirectory()}/$FOLDER_NAME"
 
     private val handler: Handler = Handler(Looper.getMainLooper())
     private val timerTaskRunnable: Runnable
@@ -60,11 +62,14 @@ class RecordService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notificationManager = NotificationManagerCompat.from(this)
         }
         createNotificationChannel()
     }
+
+
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -131,7 +136,7 @@ class RecordService : Service() {
     private fun record(fileName: String) {
         mediaRecorder?.release();
         mediaRecorder = null;
-        val dirFile = "$fileDir$fileName.wav"
+        val dirFile = "$fileDir/$fileName.wav"
         mediaRecorder = MediaRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
@@ -234,7 +239,7 @@ class RecordService : Service() {
             }
             ACTION_STOP_SERVICE -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    notificationManager.cancel(NOTIFICATION_ID)
+                    notificationManager.cancelAll()
                 }
                 recordTime = 0
                 stopRecord()

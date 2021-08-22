@@ -6,9 +6,20 @@ import com.salazarev.hw27servicesrecorder.rv.RecordItem
 import java.io.File
 
 class MainViewModel : ViewModel() {
+    private val dir = "${Environment.getExternalStorageDirectory().absolutePath}/${RecordService.FOLDER_NAME}"
 
-    private val dir = "${Environment.getExternalStorageDirectory().absolutePath}/Record"
+    init{
+        createFolder()
+    }
 
-    fun getRecordItems(): List<RecordItem> =
-        File(dir).listFiles()?.filter { it.isFile }?.map { RecordItem(it.name) } ?: emptyList()
+    fun getRecordItems(): List<RecordItem>{
+        createFolder()
+       return File(dir).listFiles()?.filter { it.isFile }?.map { RecordItem(it.name) } ?: emptyList()
+    }
+
+
+    private fun createFolder() {
+        val folder = File(dir)
+        if (!folder.exists())  folder.mkdirs()
+    }
 }
