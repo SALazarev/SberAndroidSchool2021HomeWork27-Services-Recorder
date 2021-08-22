@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.salazarev.hw27servicesrecorder.R
+import java.io.File
 
 class RecordsAdapter(
     private var data: List<RecordItem>,
@@ -27,4 +28,13 @@ class RecordsAdapter(
         this.data = data
         notifyDataSetChanged()
     }
+
+    fun updateData(rootFile: File) {
+        this.data = listFiles(rootFile)
+        notifyDataSetChanged()
+    }
+
+    private fun listFiles(rootFile: File): List<RecordItem> =
+        rootFile.listFiles()?.map { RecordItem(it.absolutePath) } ?: emptyList()
+
 }

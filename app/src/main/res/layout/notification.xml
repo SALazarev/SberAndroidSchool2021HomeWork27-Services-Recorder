@@ -10,7 +10,8 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:padding="8dp"
-        android:textSize="36sp" />
+        android:textColor="@android:color/white"
+        android:textSize="28sp" />
 
     <TextView
         android:id="@+id/tv_chronometer"
@@ -19,7 +20,8 @@
         android:layout_weight="1"
         android:gravity="center"
         android:padding="8dp"
-        android:textSize="36sp" />
+        android:textColor="@android:color/white"
+        android:textSize="28sp" />
 
     <ImageView
         android:id="@+id/btn_play"

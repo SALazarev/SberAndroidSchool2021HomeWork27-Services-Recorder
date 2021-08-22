@@ -3,33 +3,66 @@ package com.salazarev.hw27servicesrecorder
 import android.app.*
 import android.content.Intent
 import android.media.MediaRecorder
-import android.os.Build
-import android.os.Environment
-import android.os.IBinder
-import android.os.SystemClock
+import android.os.*
+import android.util.Log
 import android.widget.RemoteViews
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import java.text.SimpleDateFormat
+import java.util.*
+import java.util.concurrent.TimeUnit
 
 
 class RecordService : Service() {
     companion object {
+        enum class RecordState(val imageStatus: Int) {
+            RECORD(R.drawable.outline_pause_white_48),
+            PAUSE(R.drawable.outline_play_arrow_white_48),
+        }
+
         const val ACTION_START_SERVICE = "ACTION_START_SERVICE"
         const val ACTION_STOP_SERVICE = "ACTION_STOP_SERVICE"
 
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "CHANNEL_ID_1"
         private const val ACTION_PLAY = "ACTION_PLAY"
+
+        private const val FILE_NAME_FORMAT = "dd_MM_yyyy-HH_mm_ss"
     }
 
-    private var isPlay = true
+    private var recordStatus = RecordState.RECORD
 
-    private val idImagePlay = R.drawable.outline_play_arrow_white_48
-    private val idImagePause = R.drawable.outline_pause_white_48
+    private val fileDir = "${Environment.getExternalStorageDirectory()}/Record/"
+
+    private val handler: Handler = Handler(Looper.getMainLooper())
+    private val timerTaskRunnable: Runnable
+    private var recordTime: Long = 0
+    lateinit var notificationManager: NotificationManagerCompat
+
+    init {
+        timerTaskRunnable = object : Runnable {
+            override fun run() {
+                if (recordStatus == RecordState.PAUSE) {
+                    handler.removeCallbacks(this)
+                } else {
+                    recordTime += 1000
+                    handler.postDelayed(this, 1000)
+                    updateNotification(
+                        createNotification(
+                            getRemoteViews(getTime(recordTime))
+                        )
+                    )
+                }
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notificationManager = NotificationManagerCompat.from(this)
+        }
         createNotificationChannel()
     }
 
@@ -40,9 +73,6 @@ class RecordService : Service() {
             val importance = NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel(CHANNEL_ID, name, importance)
             channel.description = description
-            val notificationManager = getSystemService(
-                NotificationManager::class.java
-            )
             notificationManager.createNotificationChannel(channel)
         }
     }
@@ -70,79 +100,147 @@ class RecordService : Service() {
         remoteViews.setTextViewText(R.id.tv_type_work, "${getString(R.string.record)}:")
         remoteViews.setOnClickPendingIntent(R.id.btn_play, playPendingIntent)
         remoteViews.setOnClickPendingIntent(R.id.btn_stop, stopPendingIntent)
-
+        remoteViews.setImageViewResource(R.id.btn_play, recordStatus.imageStatus)
         return remoteViews
-    }
-
-    private fun playStatus(remoteViews: RemoteViews): RemoteViews {
-        val idImageStatus = if (isPlay) idImagePause else idImagePlay
-        remoteViews.setImageViewResource(R.id.btn_play, idImageStatus)
-        return remoteViews
-    }
-
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        when (intent.action) {
-            ACTION_PLAY -> {
-                updateNotification(createNotification(playStatus(getRemoteViews("4:51"))))
-                isPlay = !isPlay
-                if (isPlay){
-                    record()
-                }
-                else pauseRecord()
-            }
-            ACTION_START_SERVICE -> {
-                startForeground(
-                    NOTIFICATION_ID, createNotification(getRemoteViews("4:51"))
-                )
-                record()
-            }
-            ACTION_STOP_SERVICE -> {
-                stopRecord()
-                stopSelf()
-            }
-        }
-        return START_NOT_STICKY
     }
 
     private fun stopRecord() {
-            mediaRecorder?.stop()
-        Toast.makeText(this, "FILE IS SAVE", Toast.LENGTH_SHORT).show()
+        mediaRecorder?.stop()
     }
 
     private fun pauseRecord() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            if (recordStatus == RecordState.RECORD) mediaRecorder?.pause()
+        } else {
+            stopRecord()
+        }
+        recordStatus = RecordState.PAUSE
+    }
 
+    private fun replayRecord() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            if (recordStatus == RecordState.PAUSE) mediaRecorder?.resume()
+        } else {
+            record(generateNameFileByCurrentTime(FILE_NAME_FORMAT))
+        }
+        recordStatus = RecordState.RECORD
     }
 
     private var mediaRecorder: MediaRecorder? = null
 
-    private fun record() {
+    private fun record(fileName: String) {
         mediaRecorder?.release();
         mediaRecorder = null;
-        val fileName =
-            "${Environment.getExternalStorageDirectory()}/${SystemClock.elapsedRealtime()}.wav"
+        val dirFile = "$fileDir$fileName.wav"
         mediaRecorder = MediaRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
             setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-            setOutputFile(fileName)
+            setOutputFile(dirFile)
             prepare()
             start()
         }
-
     }
 
     private fun updateNotification(notification: Notification) {
-        val notificationManager = NotificationManagerCompat.from(this)
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
-
     override fun onDestroy() {
         super.onDestroy()
+        Log.d("TAG", "DESTROY RECORD SERVICE")
         Toast.makeText(this, "DESTROY RECORD SERVICE", Toast.LENGTH_SHORT).show()
+    }
+
+
+    fun generateNameFileByCurrentTime(fileNameFormat: String): String {
+        val df = SimpleDateFormat(fileNameFormat, Locale.ENGLISH)
+        return df.format(Calendar.getInstance().time)
+    }
+
+
+    private fun startTimerTask() {
+        stopTimerTask()
+        handler.postDelayed(timerTaskRunnable, 1000)
+    }
+
+    private fun stopTimerTask() {
+        handler.removeCallbacks(timerTaskRunnable)
+    }
+
+    private fun getTime(millis: Long): String = String.format(
+        "%02d:%02d:%02d",
+        TimeUnit.MILLISECONDS.toHours(millis),
+        TimeUnit.MILLISECONDS.toMinutes(millis) -
+                TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
+        TimeUnit.MILLISECONDS.toSeconds(millis) -
+                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
+    )
+
+    private val binder = LocalRecordServicebinder()
+
+    inner class LocalRecordServicebinder : Binder() {
+        fun getService(): RecordService = this@RecordService
+    }
+
+    private lateinit var recordListener: RecordListener
+
+    fun setListener(recordListener: RecordListener) {
+        this.recordListener = recordListener
+    }
+
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        Log.d("TAG", "onStart")
+        checkIntent(intent)
+        return START_NOT_STICKY
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        Log.d("TAG", "unbind")
+        stopRecord()
+        stopTimerTask()
+        recordListener.isRecordered()
+        return super.onUnbind(intent)
+    }
+
+    override fun onBind(intent: Intent): IBinder {
+        Log.d("TAG", "onBind")
+        checkIntent(intent)
+        return binder
+    }
+
+    fun checkIntent(intent: Intent) {
+        Log.d("TAG", "${intent.action}")
+        when (intent.action) {
+            ACTION_PLAY -> {
+                if (recordStatus == RecordState.RECORD) {
+                    pauseRecord()
+                    stopTimerTask()
+                } else {
+                    if (recordStatus == RecordState.PAUSE) replayRecord()
+                    startTimerTask()
+                }
+                startTimerTask()
+                updateNotification(createNotification(getRemoteViews(getTime(recordTime))))
+
+            }
+            ACTION_START_SERVICE -> {
+                startForeground(
+                    NOTIFICATION_ID, createNotification(getRemoteViews(getTime(recordTime)))
+                )
+                record(generateNameFileByCurrentTime(FILE_NAME_FORMAT))
+                startTimerTask()
+            }
+            ACTION_STOP_SERVICE -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    notificationManager.cancel(NOTIFICATION_ID)
+                }
+                recordTime = 0
+                stopRecord()
+                stopTimerTask()
+                recordListener.isRecordered()
+            }
+        }
     }
 }

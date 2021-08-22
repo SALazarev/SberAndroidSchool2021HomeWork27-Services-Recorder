@@ -7,17 +7,8 @@
         android:id="@+id/tv_record_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="36sp"
+        android:textSize="24sp"
         android:padding="8dp"
         android:text="RecordName"
         android:layout_gravity="start|center"/>
-
-    <TextView
-        android:id="@+id/tv_record_length"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="28sp"
-        android:padding="8dp"
-        android:text="time"
-        android:layout_gravity="end|center"/>
 </FrameLayout>
