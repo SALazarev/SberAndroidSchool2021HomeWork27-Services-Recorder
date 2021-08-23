@@ -66,31 +66,50 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-        private val playConnection: ServiceConnection = object : ServiceConnection {
-            override fun onServiceConnected(
-                className: ComponentName,
-                _service: IBinder
-            ) {
-                val binder = _service as PlayService.LocalPlayServiceBinder
-                playService = binder.getService()
-                boundPlayService = true
-                playService.setListener(object : PlayListener {
-                    override fun isPlay(playStatus: AudioPlayer.PlayState, fileName: String) {
-                        when (playStatus){
-                           AudioPlayer.PlayState.PLAY ->   adapter.itemPlayStatus(playStatus, fileName)
-                            AudioPlayer.PlayState.PAUSE -> adapter.itemPlayStatus(playStatus, fileName)
-                            AudioPlayer.PlayState.STOP -> {
-                                adapter.itemPlayStatus(playStatus, fileName)
-                                playUnbind()}
+    private val playConnection: ServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(
+            className: ComponentName,
+            _service: IBinder
+        ) {
+            val binder = _service as PlayService.LocalPlayServiceBinder
+            playService = binder.getService()
+            boundPlayService = true
+            playService.setListener(object : PlayListener {
+                override fun isPlay(playStatus: AudioPlayer.PlayState, fileName: String) {
+                    when (playStatus) {
+                        AudioPlayer.PlayState.PLAY -> adapter.itemPlayStatus(playStatus, fileName)
+                        AudioPlayer.PlayState.PAUSE -> adapter.itemPlayStatus(playStatus, fileName)
+                        AudioPlayer.PlayState.STOP -> {
+                            adapter.itemPlayStatus(playStatus, fileName)
+                            playUnbind()
                         }
                     }
-                })
-                playService.startMyService()
-            }
+                }
+            })
+            playService.startMyService()
+        }
 
         override fun onServiceDisconnected(arg0: ComponentName) {
             boundPlayService = false
         }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setToolbar()
+
+        viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
+        adapter = RecordsAdapter(emptyList(),
+            object : RecordListener {
+                override fun onclick(fileName: String) {
+                    startPlayService("${viewModel.dir}/$fileName")
+                }
+            })
+        setRecyclerView(adapter)
+
+        NotifManager(this)
     }
 
     private fun recordUnbind() {
@@ -104,24 +123,6 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, PlayService::class.java)
         stopService(intent)
     }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        setToolbar()
-
-        viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
-        adapter = RecordsAdapter(emptyList(),
-            object : RecordListener {
-                override fun onclick(fileName: String) {
-                     startPlayService("${viewModel.dir}/$fileName")
-                }
-            })
-        setRecyclerView(adapter)
-
-        NotifManager(this)
-}
 
     override fun onResume() {
         super.onResume()
@@ -218,13 +219,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startPlayService(dir: String) {
         val intent = Intent(this, PlayService::class.java)
-        intent.putExtra(PlayService.DIRECTORY_KEY,dir)
+        intent.putExtra(PlayService.DIRECTORY_KEY, dir)
         bindService(intent, playConnection, Context.BIND_AUTO_CREATE)
-    }
-
-    override fun onDestroy() {
-        unbindService(playConnection)
-        unbindService(recordConnection)
-        super.onDestroy()
     }
 }

@@ -8,10 +8,10 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class Recorder {
-     var mediaRecorder: MediaRecorder? = null
-     var recordStatus = RecordState.RECORD
+    var mediaRecorder: MediaRecorder? = null
+    var recordStatus = RecordState.RECORD
 
-    companion object{
+    companion object {
         private const val FILE_NAME_FORMAT = "dd_MM_yyyy-HH_mm_ss"
         const val FOLDER_NAME = "ServiceRecorder"
     }
@@ -24,7 +24,7 @@ class Recorder {
         PAUSE(R.drawable.outline_play_arrow_white_48),
     }
 
-     fun record() {
+    fun record() {
         mediaRecorder?.release();
         mediaRecorder = null;
         val dirFile = "$fileDir/${generateNameFileByCurrentTime(FILE_NAME_FORMAT)}.wav"
@@ -38,7 +38,7 @@ class Recorder {
         }
     }
 
-    fun replay(){
+    fun replay() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             if (recordStatus == RecordState.PAUSE) mediaRecorder?.resume()
         } else {
@@ -47,7 +47,7 @@ class Recorder {
         recordStatus = RecordState.RECORD
     }
 
-    fun pause(){
+    fun pause() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             if (recordStatus == RecordState.RECORD) mediaRecorder?.pause()
         } else {
@@ -56,7 +56,7 @@ class Recorder {
         recordStatus = RecordState.PAUSE
     }
 
-    fun stop(){
+    fun stop() {
         mediaRecorder?.stop()
         recordStatus = RecordState.PAUSE
     }

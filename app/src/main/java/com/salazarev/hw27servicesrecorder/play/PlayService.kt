@@ -68,7 +68,15 @@ class PlayService : Service() {
             ACTION_PLAY -> {
                 if (audioPlayer.playStatus == AudioPlayer.PlayState.PLAY) pause()
                 else if (audioPlayer.playStatus == AudioPlayer.PlayState.PAUSE) play()
-                updateNotification(createNotification(getRemoteViews(NotifManager.getTimeForNotification(playTime))))
+                updateNotification(
+                    createNotification(
+                        getRemoteViews(
+                            NotifManager.getTimeForNotification(
+                                playTime
+                            )
+                        )
+                    )
+                )
             }
             ACTION_STOP_SERVICE -> {
                 stop()
@@ -120,7 +128,8 @@ class PlayService : Service() {
     private lateinit var audioPlayer: AudioPlayer
     fun startMyService() {
         startForeground(
-            NOTIFICATION_ID, createNotification(getRemoteViews(NotifManager.getTimeForNotification(playTime)))
+            NOTIFICATION_ID,
+            createNotification(getRemoteViews(NotifManager.getTimeForNotification(playTime)))
         )
         play()
     }

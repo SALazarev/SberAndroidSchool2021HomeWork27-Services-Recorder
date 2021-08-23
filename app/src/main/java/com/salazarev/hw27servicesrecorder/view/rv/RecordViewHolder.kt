@@ -20,9 +20,9 @@ class RecordViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
     }
 
     fun bindView(recordItem: RecordItem, clickListener: View.OnClickListener) {
-       itemView.setOnClickListener(clickListener)
-        nameRecordTv.text= recordItem.name
-        when (recordItem.playStatus){
+        itemView.setOnClickListener(clickListener)
+        nameRecordTv.text = recordItem.name
+        when (recordItem.playStatus) {
             AudioPlayer.PlayState.PLAY -> playStatusIv.setImageResource(R.drawable.outline_pause_24)
             AudioPlayer.PlayState.PAUSE -> playStatusIv.setImageResource(R.drawable.outline_play_arrow_24)
             AudioPlayer.PlayState.STOP -> playStatusIv.setImageResource(0)

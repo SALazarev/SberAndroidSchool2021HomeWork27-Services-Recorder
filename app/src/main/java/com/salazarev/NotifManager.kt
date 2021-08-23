@@ -10,7 +10,7 @@ import com.salazarev.hw27servicesrecorder.record.RecordService
 import java.util.concurrent.TimeUnit
 
 class NotifManager(context: Context) {
-    companion object{
+    companion object {
         const val CHANNEL_ID = "CHANNEL_ID_1"
 
         fun getTimeForNotification(millis: Long): String = String.format(
@@ -34,7 +34,6 @@ class NotifManager(context: Context) {
             NotificationManagerCompat.from(context).createNotificationChannel(channel)
         }
     }
-
 
 
 }

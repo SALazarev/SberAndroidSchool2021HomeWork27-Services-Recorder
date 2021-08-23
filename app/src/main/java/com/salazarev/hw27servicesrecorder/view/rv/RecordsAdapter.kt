@@ -30,18 +30,9 @@ class RecordsAdapter(
         notifyDataSetChanged()
     }
 
-    fun updateData(rootFile: File) {
-        this.data = listFiles(rootFile)
-        notifyDataSetChanged()
-    }
-
-    private fun listFiles(rootFile: File): List<RecordItem> =
-        rootFile.listFiles()?.map { RecordItem(it.absolutePath) } ?: emptyList()
-
-
     fun itemPlayStatus(playStatus: AudioPlayer.PlayState, fileName: String) {
         data.find { it.name == fileName }?.let {
-            it.playStatus =playStatus
+            it.playStatus = playStatus
             notifyDataSetChanged()
         }
 

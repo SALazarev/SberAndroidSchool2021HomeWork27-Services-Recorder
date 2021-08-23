@@ -23,18 +23,19 @@ class AudioPlayer(dir: String) {
         STOP
     }
 
-    fun pause(){
+    fun pause() {
         mediaPlayer.pause()
         playStatus = PlayState.PAUSE
     }
 
-    fun stop(){
+    fun stop() {
         mediaPlayer.stop()
         mediaPlayer.prepare()
         mediaPlayer.seekTo(0)
         playStatus = PlayState.STOP
     }
-    fun play(){
+
+    fun play() {
         mediaPlayer.start()
         playStatus = PlayState.PLAY
     }
