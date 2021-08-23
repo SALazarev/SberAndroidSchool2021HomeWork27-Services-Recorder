@@ -3,10 +3,10 @@ package com.salazarev.hw27servicesrecorder.play
 import android.app.*
 import android.content.Intent
 import android.os.*
-import android.provider.Settings
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.salazarev.NotifManager
 import com.salazarev.hw27servicesrecorder.R
 import java.util.concurrent.TimeUnit
 
@@ -14,9 +14,8 @@ class PlayService : Service() {
     companion object {
         const val ACTION_STOP_SERVICE = "ACTION_STOP_SERVICE"
 
-        const val DIRECTORY_KEY = "dir"
+        const val DIRECTORY_KEY = "PlayService"
         private const val NOTIFICATION_ID = 2
-        private const val CHANNEL_ID = "CHANNEL_ID_1"
         private const val ACTION_PLAY = "ACTION_PLAY"
     }
 
@@ -39,7 +38,7 @@ class PlayService : Service() {
                     handler.postDelayed(this, 1000)
                     updateNotification(
                         createNotification(
-                            getRemoteViews(getTime(playTime))
+                            getRemoteViews(NotifManager.getTimeForNotification(playTime))
                         )
                     )
                 }
@@ -50,7 +49,6 @@ class PlayService : Service() {
     override fun onCreate() {
         super.onCreate()
         notificationManager = NotificationManagerCompat.from(this)
-        createNotificationChannel()
     }
 
     override fun onBind(intent: Intent): IBinder {
@@ -70,7 +68,7 @@ class PlayService : Service() {
             ACTION_PLAY -> {
                 if (audioPlayer.playStatus == AudioPlayer.PlayState.PLAY) pause()
                 else if (audioPlayer.playStatus == AudioPlayer.PlayState.PAUSE) play()
-                updateNotification(createNotification(getRemoteViews(getTime(playTime))))
+                updateNotification(createNotification(getRemoteViews(NotifManager.getTimeForNotification(playTime))))
             }
             ACTION_STOP_SERVICE -> {
                 stop()
@@ -82,19 +80,8 @@ class PlayService : Service() {
         this.playListener = playListener
     }
 
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name: CharSequence = getString(R.string.pleer)
-            val description = getString(R.string.play_audio)
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, name, importance)
-            channel.description = description
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-
     private fun createNotification(remoteViews: RemoteViews): Notification {
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, NotifManager.CHANNEL_ID)
         builder
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOnlyAlertOnce(true)
@@ -124,17 +111,6 @@ class PlayService : Service() {
         return remoteViews
     }
 
-    private fun getTime(millis: Long): String = String.format(
-        "%02d:%02d:%02d",
-        TimeUnit.MILLISECONDS.toHours(millis),
-        TimeUnit.MILLISECONDS.toMinutes(millis) -
-                TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
-        TimeUnit.MILLISECONDS.toSeconds(millis) -
-                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
-    )
-
-
-
     private fun play() {
         startTimerTask()
         audioPlayer.play()
@@ -144,7 +120,7 @@ class PlayService : Service() {
     private lateinit var audioPlayer: AudioPlayer
     fun startMyService() {
         startForeground(
-            NOTIFICATION_ID, createNotification(getRemoteViews(getTime(playTime)))
+            NOTIFICATION_ID, createNotification(getRemoteViews(NotifManager.getTimeForNotification(playTime)))
         )
         play()
     }
@@ -175,7 +151,6 @@ class PlayService : Service() {
     private fun stopTimerTask() {
         handler.removeCallbacks(timerTaskRunnable)
     }
-
 
     override fun onDestroy() {
         super.onDestroy()

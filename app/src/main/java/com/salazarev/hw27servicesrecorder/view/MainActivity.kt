@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.salazarev.NotifManager
 import com.salazarev.hw27servicesrecorder.R
 import com.salazarev.hw27servicesrecorder.databinding.ActivityMainBinding
 import com.salazarev.hw27servicesrecorder.play.PlayListener
@@ -56,8 +57,8 @@ class MainActivity : AppCompatActivity() {
                     if (checkFindFilePermission()) updateAdapter(viewModel.getRecordItems())
                     recordUnbind()
                 }
-
             })
+            recordService.startMyService()
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -118,7 +119,9 @@ class MainActivity : AppCompatActivity() {
                 }
             })
         setRecyclerView(adapter)
-    }
+
+        NotifManager(this)
+}
 
     override fun onResume() {
         super.onResume()
@@ -210,7 +213,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun startRecordService() {
         val intent = Intent(this, RecordService::class.java)
-        intent.action = RecordService.ACTION_START_SERVICE
         bindService(intent, recordConnection, Context.BIND_AUTO_CREATE)
     }
 
