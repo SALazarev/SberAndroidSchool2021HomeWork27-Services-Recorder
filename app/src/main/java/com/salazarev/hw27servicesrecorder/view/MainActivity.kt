@@ -18,6 +18,7 @@ import com.salazarev.hw27servicesrecorder.R
 import com.salazarev.hw27servicesrecorder.databinding.ActivityMainBinding
 import com.salazarev.hw27servicesrecorder.play.PlayListener
 import com.salazarev.hw27servicesrecorder.play.PlayService
+import com.salazarev.hw27servicesrecorder.play.PlayerRecord
 import com.salazarev.hw27servicesrecorder.record.RecordService
 import com.salazarev.hw27servicesrecorder.view.rv.RecordItem
 import com.salazarev.hw27servicesrecorder.view.rv.RecordListener
@@ -73,11 +74,11 @@ class MainActivity : AppCompatActivity() {
                 playService = binder.getService()
                 boundPlayService = true
                 playService.setListener(object : PlayListener {
-                    override fun isPlay(playStatus: PlayService.Companion.PlayState, fileName: String) {
+                    override fun isPlay(playStatus: PlayerRecord.PlayState, fileName: String) {
                         when (playStatus){
-                            PlayService.Companion.PlayState.PLAY ->   adapter.itemPlayStatus(playStatus, fileName)
-                            PlayService.Companion.PlayState.PAUSE -> adapter.itemPlayStatus(playStatus, fileName)
-                            PlayService.Companion.PlayState.STOP -> {
+                           PlayerRecord.PlayState.PLAY ->   adapter.itemPlayStatus(playStatus, fileName)
+                            PlayerRecord.PlayState.PAUSE -> adapter.itemPlayStatus(playStatus, fileName)
+                            PlayerRecord.PlayState.STOP -> {
                                 adapter.itemPlayStatus(playStatus, fileName)
                                 playUnbind()}
                         }
@@ -113,7 +114,6 @@ class MainActivity : AppCompatActivity() {
         adapter = RecordsAdapter(emptyList(),
             object : RecordListener {
                 override fun onclick(fileName: String) {
-                   // if(boundPlayService) playService.sta
                      startPlayService("${viewModel.dir}/$fileName")
                 }
             })

@@ -2,24 +2,15 @@ package com.salazarev.hw27servicesrecorder.play
 
 import android.app.*
 import android.content.Intent
-import android.media.MediaPlayer
 import android.os.*
-import android.util.Log
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.salazarev.hw27servicesrecorder.R
-import java.io.File
 import java.util.concurrent.TimeUnit
 
 class PlayService : Service() {
     companion object {
-        enum class PlayState {
-            PLAY,
-            PAUSE,
-            STOP
-        }
-
         const val ACTION_STOP_SERVICE = "ACTION_STOP_SERVICE"
 
         private const val NOTIFICATION_ID = 2
@@ -27,41 +18,30 @@ class PlayService : Service() {
         private const val ACTION_PLAY = "ACTION_PLAY"
     }
 
-    private lateinit var dir: String
-    private lateinit var fileName: String
-
     private lateinit var playListener: PlayListener
     private val binder = LocalPlayServiceBinder()
 
-    private var playStatus = PlayState.PLAY
 
     private val handler: Handler = Handler(Looper.getMainLooper())
     private val timerTaskRunnable: Runnable
-    private var playTime: Long = 0
     private lateinit var notificationManager: NotificationManagerCompat
-
-    private lateinit var mediaPlayer: MediaPlayer
 
     init {
         timerTaskRunnable = object : Runnable {
             override fun run() {
-                if (playStatus == PlayState.PAUSE) {
+                if (playerRecord.playStatus == PlayerRecord.PlayState.PAUSE) {
                     handler.removeCallbacks(this)
                 } else {
-                    playTime += 1000
+                    playerRecord.playTime += 1000
                     handler.postDelayed(this, 1000)
                     updateNotification(
                         createNotification(
-                            getRemoteViews(getTime(playTime))
+                            getRemoteViews(getTime(playerRecord.playTime))
                         )
                     )
                 }
             }
         }
-    }
-
-    fun setListener(playListener: PlayListener) {
-        this.playListener = playListener
     }
 
     override fun onCreate() {
@@ -71,8 +51,9 @@ class PlayService : Service() {
     }
 
     override fun onBind(intent: Intent): IBinder {
-        checkIntent(intent)
-        dir = intent.getStringExtra("dir").toString()
+        val dir = intent.getStringExtra("dir").toString()
+        playerRecord = PlayerRecord(dir)
+        playerRecord.setFinishRecordCallback { this@PlayService.stop() }
         return binder
     }
 
@@ -84,14 +65,18 @@ class PlayService : Service() {
     private fun checkIntent(intent: Intent) {
         when (intent.action) {
             ACTION_PLAY -> {
-                if (playStatus == PlayState.PLAY) pause()
-                else if (playStatus == PlayState.PAUSE) play()
-                updateNotification(createNotification(getRemoteViews(getTime(playTime))))
+                if (playerRecord.playStatus == PlayerRecord.PlayState.PLAY) pause()
+                else if (playerRecord.playStatus == PlayerRecord.PlayState.PAUSE) play()
+                updateNotification(createNotification(getRemoteViews(getTime(playerRecord.playTime))))
             }
             ACTION_STOP_SERVICE -> {
                 stop()
             }
         }
+    }
+
+    fun setListener(playListener: PlayListener) {
+        this.playListener = playListener
     }
 
     private fun createNotificationChannel() {
@@ -129,55 +114,42 @@ class PlayService : Service() {
         remoteViews.setOnClickPendingIntent(R.id.btn_play_status, playPendingIntent)
         remoteViews.setOnClickPendingIntent(R.id.btn_stop, stopPendingIntent)
 
-        val imageId = if (playStatus == PlayState.PLAY) R.drawable.outline_pause_white_48
-        else R.drawable.outline_play_arrow_white_48
+        val imageId =
+            if (playerRecord.playStatus == PlayerRecord.PlayState.PLAY) R.drawable.outline_pause_white_48
+            else R.drawable.outline_play_arrow_white_48
         remoteViews.setImageViewResource(R.id.btn_play_status, imageId)
         return remoteViews
     }
 
     private fun play() {
         startTimerTask()
-        mediaPlayer.start()
-        playStatus = PlayState.PLAY
-        playListener.isPlay(playStatus, fileName)
+        playerRecord.play()
+        playListener.isPlay(playerRecord.playStatus, playerRecord.fileName)
     }
 
+    private lateinit var playerRecord: PlayerRecord
     fun startMyService() {
         startForeground(
-            NOTIFICATION_ID, createNotification(getRemoteViews(getTime(playTime)))
+            NOTIFICATION_ID, createNotification(getRemoteViews(getTime(playerRecord.playTime)))
         )
-        fileName = File(dir).name
-        setUpPlayer(dir)
         play()
-        playListener.isPlay(playStatus, fileName)
+        playListener.isPlay(playerRecord.playStatus, playerRecord.fileName)
         startTimerTask()
     }
 
     private fun pause() {
         stopTimerTask()
-        mediaPlayer.pause()
-        playStatus = PlayState.PAUSE
-        playListener.isPlay(playStatus, fileName)
+        playerRecord.pause()
+        playerRecord.playStatus = PlayerRecord.PlayState.PAUSE
+        playListener.isPlay(playerRecord.playStatus, playerRecord.fileName)
     }
 
-    private fun setUpPlayer(dir: String) {
-        mediaPlayer = MediaPlayer().apply {
-            setDataSource(dir)
-            setOnCompletionListener {
-                this@PlayService.stop()
-            }
-            prepare()
-        }
-    }
 
     private fun stop() {
-        playTime = 0
         stopTimerTask()
-        mediaPlayer.stop()
-        mediaPlayer.prepare()
-        mediaPlayer.seekTo(0)
-        playStatus = PlayState.STOP
-        playListener.isPlay(playStatus, fileName)
+        playerRecord.stop()
+        playerRecord.playStatus = PlayerRecord.PlayState.STOP
+        playListener.isPlay(playerRecord.playStatus, playerRecord.fileName)
     }
 
     private fun updateNotification(notification: Notification) {
@@ -205,7 +177,7 @@ class PlayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (playStatus == PlayState.PAUSE || playStatus == PlayState.PLAY) stop()
+        if (playerRecord.playStatus == PlayerRecord.PlayState.PAUSE || playerRecord.playStatus == PlayerRecord.PlayState.PLAY) stop()
     }
 
     inner class LocalPlayServiceBinder : Binder() {

@@ -6,7 +6,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.salazarev.hw27servicesrecorder.R
 import com.salazarev.hw27servicesrecorder.databinding.ItemRecordBinding
-import com.salazarev.hw27servicesrecorder.play.PlayService
+import com.salazarev.hw27servicesrecorder.play.PlayerRecord
 
 class RecordViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
@@ -23,9 +23,9 @@ class RecordViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
        itemView.setOnClickListener(clickListener)
         nameRecordTv.text= recordItem.name
         when (recordItem.playStatus){
-            PlayService.Companion.PlayState.PLAY -> playStatusIv.setImageResource(R.drawable.outline_pause_24)
-            PlayService.Companion.PlayState.PAUSE -> playStatusIv.setImageResource(R.drawable.outline_play_arrow_24)
-            PlayService.Companion.PlayState.STOP -> playStatusIv.setImageResource(0)
+            PlayerRecord.PlayState.PLAY -> playStatusIv.setImageResource(R.drawable.outline_pause_24)
+            PlayerRecord.PlayState.PAUSE -> playStatusIv.setImageResource(R.drawable.outline_play_arrow_24)
+            PlayerRecord.PlayState.STOP -> playStatusIv.setImageResource(0)
         }
     }
 }
