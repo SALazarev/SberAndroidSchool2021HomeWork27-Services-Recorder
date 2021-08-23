@@ -1,4 +1,4 @@
-package com.salazarev.hw27servicesrecorder
+package com.salazarev.hw27servicesrecorder.record
 
 import android.app.*
 import android.content.Intent
@@ -9,6 +9,7 @@ import android.widget.RemoteViews
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.salazarev.hw27servicesrecorder.R
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -104,9 +105,9 @@ class RecordService : Service() {
         val remoteViews = RemoteViews(packageName, R.layout.notification)
         remoteViews.setTextViewText(R.id.tv_chronometer, time)
         remoteViews.setTextViewText(R.id.tv_type_work, "${getString(R.string.record)}:")
-        remoteViews.setOnClickPendingIntent(R.id.btn_play, playPendingIntent)
+        remoteViews.setOnClickPendingIntent(R.id.btn_play_status, playPendingIntent)
         remoteViews.setOnClickPendingIntent(R.id.btn_stop, stopPendingIntent)
-        remoteViews.setImageViewResource(R.id.btn_play, recordStatus.imageStatus)
+        remoteViews.setImageViewResource(R.id.btn_play_status, recordStatus.imageStatus)
         return remoteViews
     }
 

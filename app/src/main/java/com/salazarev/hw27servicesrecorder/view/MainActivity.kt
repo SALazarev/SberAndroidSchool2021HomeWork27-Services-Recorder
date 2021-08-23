@@ -1,4 +1,4 @@
-package com.salazarev.hw27servicesrecorder
+package com.salazarev.hw27servicesrecorder.view
 
 import android.content.ComponentName
 import android.content.Context
@@ -14,10 +14,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.salazarev.hw27servicesrecorder.R
 import com.salazarev.hw27servicesrecorder.databinding.ActivityMainBinding
-import com.salazarev.hw27servicesrecorder.rv.RecordItem
-import com.salazarev.hw27servicesrecorder.rv.RecordListener
-import com.salazarev.hw27servicesrecorder.rv.RecordsAdapter
+import com.salazarev.hw27servicesrecorder.play.PlayListener
+import com.salazarev.hw27servicesrecorder.play.PlayService
+import com.salazarev.hw27servicesrecorder.record.RecordService
+import com.salazarev.hw27servicesrecorder.view.rv.RecordItem
+import com.salazarev.hw27servicesrecorder.view.rv.RecordListener
+import com.salazarev.hw27servicesrecorder.view.rv.RecordsAdapter
 
 
 class MainActivity : AppCompatActivity() {
@@ -45,7 +49,8 @@ class MainActivity : AppCompatActivity() {
             val binder = _service as RecordService.LocalRecordServiceBinder
             recordService = binder.getService()
             boundRecordService = true
-            recordService.setListener(object : com.salazarev.hw27servicesrecorder.RecordListener {
+            recordService.setListener(object :
+                com.salazarev.hw27servicesrecorder.record.RecordListener {
                 override fun isRecordered() {
                     if (checkFindFilePermission()) updateAdapter(viewModel.getRecordItems())
                     recordUnbind()
@@ -68,13 +73,17 @@ class MainActivity : AppCompatActivity() {
                 playService = binder.getService()
                 boundPlayService = true
                 playService.setListener(object : PlayListener {
-                    override fun isPlay(isPlay: Boolean) {
+                    override fun isPlay(isPlay: Boolean, fileName: String) {
                        if (isPlay){
+                           adapter.itemPlayStatus(isPlay, fileName)
 
-                       } else playUnbind()
+                       } else {
+                           adapter.itemPlayStatus(isPlay, fileName)
+                           playUnbind()
+                       }
                     }
-
                 })
+                playService.startMyService()
             }
 
         override fun onServiceDisconnected(arg0: ComponentName) {
@@ -206,7 +215,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun startPlayService(dir: String) {
         val intent = Intent(this, PlayService::class.java)
-        intent.action = PlayService.ACTION_START_SERVICE
         intent.putExtra("dir",dir)
         bindService(intent, playConnection, Context.BIND_AUTO_CREATE)
     }

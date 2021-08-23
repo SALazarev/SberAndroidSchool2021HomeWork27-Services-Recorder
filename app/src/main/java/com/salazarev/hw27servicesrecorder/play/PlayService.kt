@@ -1,4 +1,4 @@
-package com.salazarev.hw27servicesrecorder
+package com.salazarev.hw27servicesrecorder.play
 
 import android.app.*
 import android.content.Intent
@@ -8,6 +8,8 @@ import android.util.Log
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.salazarev.hw27servicesrecorder.R
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 class PlayService : Service() {
@@ -24,6 +26,8 @@ class PlayService : Service() {
         private const val CHANNEL_ID = "CHANNEL_ID_1"
         private const val ACTION_PLAY = "ACTION_PLAY"
     }
+
+    lateinit var fileName: String
 
     private lateinit var playListener: PlayListener
 
@@ -93,9 +97,9 @@ class PlayService : Service() {
         val remoteViews = RemoteViews(packageName, R.layout.notification)
         remoteViews.setTextViewText(R.id.tv_chronometer, time)
         remoteViews.setTextViewText(R.id.tv_type_work, "${getString(R.string.play)}:")
-        remoteViews.setOnClickPendingIntent(R.id.btn_play, playPendingIntent)
+        remoteViews.setOnClickPendingIntent(R.id.btn_play_status, playPendingIntent)
         remoteViews.setOnClickPendingIntent(R.id.btn_stop, stopPendingIntent)
-        remoteViews.setImageViewResource(R.id.btn_play, playStatus.imageStatus)
+        remoteViews.setImageViewResource(R.id.btn_play_status, playStatus.imageStatus)
         return remoteViews
     }
 
@@ -110,6 +114,7 @@ class PlayService : Service() {
                 if (playStatus == PlayState.PLAY) {
                     pause()
                     stopTimerTask()
+                    playListener.isPlay(false, fileName)
                 } else {
                     if (playStatus == PlayState.PAUSE) play()
                     startTimerTask()
@@ -118,26 +123,28 @@ class PlayService : Service() {
                 updateNotification(createNotification(getRemoteViews(getTime(playTime))))
 
             }
-            ACTION_START_SERVICE -> {
-                startForeground(
-                    NOTIFICATION_ID, createNotification(getRemoteViews(getTime(playTime)))
-                )
-                setUpPlayer(intent.getStringExtra("dir").toString())
-                play()
-                startTimerTask()
-            }
             ACTION_STOP_SERVICE -> {
                 notificationManager.cancel(NOTIFICATION_ID)
                 if (playStatus == PlayState.PLAY) {
                     playTime = 0
                     stopPlay()
                     stopTimerTask()
-                    playListener.isPlay(false)
+                    playListener.isPlay(false, fileName)
                 }
             }
         }
     }
 
+    fun startMyService(){
+        startForeground(
+            NOTIFICATION_ID, createNotification(getRemoteViews(getTime(playTime)))
+        )
+        fileName = File(dir).name
+        setUpPlayer(dir)
+        play()
+        playListener.isPlay(true, fileName)
+        startTimerTask()
+    }
 
     private fun pause() {
         mediaPlayer.pause()
@@ -151,7 +158,7 @@ class PlayService : Service() {
             setDataSource(dir)
             setOnCompletionListener {
                 stopPlay()
-                playListener.isPlay(false)
+                playListener.isPlay(false, fileName)
             }
             prepare()
         }
@@ -212,14 +219,17 @@ class PlayService : Service() {
             playTime = 0
             stopPlay()
             stopTimerTask()
-            playListener.isPlay(false)
+            playListener.isPlay(false,fileName)
         }
         return super.onUnbind(intent)
     }
 
+    lateinit var dir: String
+
     override fun onBind(intent: Intent): IBinder {
         Log.d("TAG", "onBind")
         checkIntent(intent)
+        dir = intent.getStringExtra("dir").toString()
         return binder
     }
 

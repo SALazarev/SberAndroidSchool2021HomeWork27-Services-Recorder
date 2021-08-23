@@ -1,4 +1,4 @@
-package com.salazarev.hw27servicesrecorder.rv
+package com.salazarev.hw27servicesrecorder.view.rv
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -9,22 +9,22 @@ import java.io.File
 class RecordsAdapter(
     private var data: List<RecordItem>,
     private val listener: RecordListener
-): RecyclerView.Adapter<RecordViewHolder>() {
+) : RecyclerView.Adapter<RecordViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecordViewHolder {
-      val view = LayoutInflater.from(parent.context).inflate(R.layout.item_record, parent, false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_record, parent, false)
         return RecordViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: RecordViewHolder, position: Int) {
-       holder.bindView(data[position]) {listener.onclick(data[position].name)}
+        holder.bindView(data[position]) { listener.onclick(data[position].name) }
     }
 
     override fun getItemCount(): Int {
-      return data.size
+        return data.size
     }
 
-    fun updateData(data: List<RecordItem>){
+    fun updateData(data: List<RecordItem>) {
         this.data = data
         notifyDataSetChanged()
     }
@@ -36,5 +36,21 @@ class RecordsAdapter(
 
     private fun listFiles(rootFile: File): List<RecordItem> =
         rootFile.listFiles()?.map { RecordItem(it.absolutePath) } ?: emptyList()
+
+
+    fun itemPlayStatus(playStatus: Boolean, fileName: String) {
+        data.find { it.name == fileName }?.let {
+            when (playStatus) {
+                true -> {
+                    it.playStatus = true
+                }
+                false -> {
+                    it.playStatus = false
+                }
+            }
+            notifyDataSetChanged()
+        }
+
+    }
 
 }

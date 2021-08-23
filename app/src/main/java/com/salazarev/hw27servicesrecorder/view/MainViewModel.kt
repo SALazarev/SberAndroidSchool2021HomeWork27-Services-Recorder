@@ -1,8 +1,9 @@
-package com.salazarev.hw27servicesrecorder
+package com.salazarev.hw27servicesrecorder.view
 
 import android.os.Environment
 import androidx.lifecycle.ViewModel
-import com.salazarev.hw27servicesrecorder.rv.RecordItem
+import com.salazarev.hw27servicesrecorder.record.RecordService
+import com.salazarev.hw27servicesrecorder.view.rv.RecordItem
 import java.io.File
 
 class MainViewModel : ViewModel() {
