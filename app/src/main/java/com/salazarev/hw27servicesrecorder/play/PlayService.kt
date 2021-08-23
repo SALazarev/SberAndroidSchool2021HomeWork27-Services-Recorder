@@ -125,12 +125,10 @@ class PlayService : Service() {
             }
             ACTION_STOP_SERVICE -> {
                 notificationManager.cancel(NOTIFICATION_ID)
-                if (playStatus == PlayState.PLAY) {
                     playTime = 0
                     stopPlay()
                     stopTimerTask()
                     playListener.isPlay(false, fileName)
-                }
             }
         }
     }

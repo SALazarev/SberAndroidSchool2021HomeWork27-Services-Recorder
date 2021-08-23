@@ -244,12 +244,10 @@ class RecordService : Service() {
             }
             ACTION_STOP_SERVICE -> {
                 notificationManager.cancel(NOTIFICATION_ID)
-                if (recordStatus == RecordState.RECORD) {
                     recordTime = 0
                     stopRecord()
                     stopTimerTask()
                     recordListener.isRecordered()
-                }
             }
         }
     }
