@@ -113,7 +113,8 @@ class MainActivity : AppCompatActivity() {
         adapter = RecordsAdapter(emptyList(),
             object : RecordListener {
                 override fun onclick(fileName: String) {
-                    startPlayService("${viewModel.dir}/$fileName")
+                   // if(boundPlayService) playService.sta
+                     startPlayService("${viewModel.dir}/$fileName")
                 }
             })
         setRecyclerView(adapter)

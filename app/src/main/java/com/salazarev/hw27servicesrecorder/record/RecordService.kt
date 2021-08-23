@@ -72,7 +72,6 @@ class RecordService : Service() {
         createNotificationChannel()
     }
 
-
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name: CharSequence = getString(R.string.recorder)
@@ -152,19 +151,10 @@ class RecordService : Service() {
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
-
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("TAG", "DESTROY RECORD SERVICE")
-        Toast.makeText(this, "DESTROY RECORD SERVICE", Toast.LENGTH_SHORT).show()
-    }
-
-
     fun generateNameFileByCurrentTime(fileNameFormat: String): String {
         val df = SimpleDateFormat(fileNameFormat, Locale.ENGLISH)
         return df.format(Calendar.getInstance().time)
     }
-
 
     private fun startTimerTask() {
         stopTimerTask()

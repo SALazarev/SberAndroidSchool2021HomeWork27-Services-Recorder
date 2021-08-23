@@ -4,4 +4,6 @@
     <string name="play">Play</string>
     <string name="record_sound">Запись звука</string>
     <string name="recorder">Диктофон</string>
+    <string name="pleer">Плеер</string>
+    <string name="play_audio">Воспроизведение аудиозаписи</string>
 </resources>
