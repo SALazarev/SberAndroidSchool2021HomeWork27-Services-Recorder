@@ -9,7 +9,6 @@ import android.widget.RemoteViews
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -33,6 +32,10 @@ class RecordService : Service() {
         private const val FILE_NAME_FORMAT = "dd_MM_yyyy-HH_mm_ss"
     }
 
+    private lateinit var recordListener: RecordListener
+
+    private val binder = LocalRecordServiceBinder()
+
     private var recordStatus = RecordState.RECORD
 
     private val fileDir = "${Environment.getExternalStorageDirectory()}/$FOLDER_NAME"
@@ -41,6 +44,8 @@ class RecordService : Service() {
     private val timerTaskRunnable: Runnable
     private var recordTime: Long = 0
     lateinit var notificationManager: NotificationManagerCompat
+
+    private var mediaRecorder: MediaRecorder? = null
 
     init {
         timerTaskRunnable = object : Runnable {
@@ -128,8 +133,6 @@ class RecordService : Service() {
         recordStatus = RecordState.RECORD
     }
 
-    private var mediaRecorder: MediaRecorder? = null
-
     private fun record(fileName: String) {
         mediaRecorder?.release();
         mediaRecorder = null;
@@ -180,13 +183,13 @@ class RecordService : Service() {
                 TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
     )
 
-    private val binder = LocalRecordServicebinder()
 
-    inner class LocalRecordServicebinder : Binder() {
+
+    inner class LocalRecordServiceBinder : Binder() {
         fun getService(): RecordService = this@RecordService
     }
 
-    private lateinit var recordListener: RecordListener
+
 
     fun setListener(recordListener: RecordListener) {
         this.recordListener = recordListener

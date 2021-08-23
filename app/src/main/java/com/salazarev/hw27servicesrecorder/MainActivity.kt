@@ -26,8 +26,10 @@ class MainActivity : AppCompatActivity() {
         const val REQUEST_FIND_FILE_CODE = 102
     }
 
-    private lateinit var service: RecordService
-    private var mBound = false
+    private lateinit var recordService: RecordService
+    private lateinit var playService: PlayService
+    private var boundRecordService = false
+    private var boundPlayService = false
 
     private lateinit var viewModel: MainViewModel
 
@@ -35,31 +37,60 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var adapter: RecordsAdapter
 
-    private val connection: ServiceConnection = object : ServiceConnection {
+    private val recordConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(
             className: ComponentName,
             _service: IBinder
         ) {
-            val binder = _service as RecordService.LocalRecordServicebinder
-            service = binder.getService()
-            mBound = true
-            service.setListener(object : com.salazarev.hw27servicesrecorder.RecordListener {
+            val binder = _service as RecordService.LocalRecordServiceBinder
+            recordService = binder.getService()
+            boundRecordService = true
+            recordService.setListener(object : com.salazarev.hw27servicesrecorder.RecordListener {
                 override fun isRecordered() {
                     if (checkFindFilePermission()) updateAdapter(viewModel.getRecordItems())
-                   unbind()
+                    recordUnbind()
                 }
 
             })
         }
 
-        override fun onServiceDisconnected(arg0: ComponentName) {
-            mBound = false
+        override fun onServiceDisconnected(name: ComponentName?) {
+            boundRecordService = false
         }
     }
 
-    private fun unbind() {
-        unbindService(connection)
+        private val playConnection: ServiceConnection = object : ServiceConnection {
+            override fun onServiceConnected(
+                className: ComponentName,
+                _service: IBinder
+            ) {
+                val binder = _service as PlayService.LocalPlayServiceBinder
+                playService = binder.getService()
+                boundPlayService = true
+                playService.setListener(object : PlayListener {
+                    override fun isPlay(isPlay: Boolean) {
+                       if (isPlay){
+
+                       } else playUnbind()
+                    }
+
+                })
+            }
+
+        override fun onServiceDisconnected(arg0: ComponentName) {
+            boundPlayService = false
+        }
+    }
+
+    private fun recordUnbind() {
+        unbindService(recordConnection)
         val intent = Intent(this, RecordService::class.java)
+        stopService(intent)
+    }
+
+    private fun playUnbind() {
+        unbindService(playConnection)
+        val intent = Intent(this, PlayService::class.java)
         stopService(intent)
     }
 
@@ -170,18 +201,19 @@ class MainActivity : AppCompatActivity() {
     private fun startRecordService() {
         val intent = Intent(this, RecordService::class.java)
         intent.action = RecordService.ACTION_START_SERVICE
-        bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        bindService(intent, recordConnection, Context.BIND_AUTO_CREATE)
     }
 
     private fun startPlayService(dir: String) {
         val intent = Intent(this, PlayService::class.java)
         intent.action = PlayService.ACTION_START_SERVICE
         intent.putExtra("dir",dir)
-        startService(intent)
+        bindService(intent, playConnection, Context.BIND_AUTO_CREATE)
     }
 
     override fun onDestroy() {
-        unbindService(connection)
+        unbindService(playConnection)
+        unbindService(recordConnection)
         super.onDestroy()
     }
 }

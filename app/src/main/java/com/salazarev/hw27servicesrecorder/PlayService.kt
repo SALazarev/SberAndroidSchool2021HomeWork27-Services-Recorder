@@ -3,10 +3,8 @@ package com.salazarev.hw27servicesrecorder
 import android.app.*
 import android.content.Intent
 import android.media.MediaPlayer
-import android.os.Build
-import android.os.Handler
-import android.os.IBinder
-import android.os.Looper
+import android.os.*
+import android.util.Log
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -26,6 +24,11 @@ class PlayService : Service() {
         private const val CHANNEL_ID = "CHANNEL_ID_1"
         private const val ACTION_PLAY = "ACTION_PLAY"
     }
+
+    private lateinit var playListener: PlayListener
+
+
+    private val binder = LocalPlayServiceBinder()
 
     private var playStatus = PlayState.PLAY
 
@@ -97,6 +100,11 @@ class PlayService : Service() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        checkIntent(intent)
+        return START_NOT_STICKY
+    }
+
+    private fun checkIntent(intent: Intent) {
         when (intent.action) {
             ACTION_PLAY -> {
                 if (playStatus == PlayState.PLAY) {
@@ -124,11 +132,10 @@ class PlayService : Service() {
                     playTime = 0
                     stopPlay()
                     stopTimerTask()
-                    stopSelf()
+                    playListener.isPlay(false)
                 }
             }
         }
-        return START_NOT_STICKY
     }
 
 
@@ -139,16 +146,19 @@ class PlayService : Service() {
 
     lateinit var mediaPlayer: MediaPlayer
 
-    private fun setUpPlayer(dir: String){
+    private fun setUpPlayer(dir: String) {
         mediaPlayer = MediaPlayer().apply {
             setDataSource(dir)
-            setOnCompletionListener { stopPlay() }
+            setOnCompletionListener {
+                stopPlay()
+                playListener.isPlay(false)
+            }
             prepare()
         }
     }
 
     private fun play() {
-        mediaPlayer. start()
+        mediaPlayer.start()
         playStatus = PlayState.PLAY
     }
 
@@ -179,10 +189,6 @@ class PlayService : Service() {
     }
 
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
-
     private fun getTime(millis: Long): String = String.format(
         "%02d:%02d:%02d",
         TimeUnit.MILLISECONDS.toHours(millis),
@@ -197,5 +203,32 @@ class PlayService : Service() {
         if (mediaPlayer.isPlaying) {
             stopPlay()
         }
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        Log.d("TAG", "unbind")
+        notificationManager.cancel(NOTIFICATION_ID)
+        if (playStatus == PlayState.PLAY) {
+            playTime = 0
+            stopPlay()
+            stopTimerTask()
+            playListener.isPlay(false)
+        }
+        return super.onUnbind(intent)
+    }
+
+    override fun onBind(intent: Intent): IBinder {
+        Log.d("TAG", "onBind")
+        checkIntent(intent)
+        return binder
+    }
+
+    inner class LocalPlayServiceBinder : Binder() {
+        fun getService(): PlayService = this@PlayService
+    }
+
+
+    fun setListener(playListener: PlayListener) {
+        this.playListener = playListener
     }
 }
