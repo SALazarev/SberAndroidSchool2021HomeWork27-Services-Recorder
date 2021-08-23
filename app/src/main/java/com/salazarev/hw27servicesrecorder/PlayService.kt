@@ -2,29 +2,59 @@ package com.salazarev.hw27servicesrecorder
 
 import android.app.*
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.widget.RemoteViews
-import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import java.util.concurrent.TimeUnit
 
-class PlayService: Service() {
+class PlayService : Service() {
     companion object {
+        enum class PlayState(val imageStatus: Int) {
+            PLAY(R.drawable.outline_pause_white_48),
+            PAUSE(R.drawable.outline_play_arrow_white_48),
+        }
+
         const val ACTION_START_SERVICE = "ACTION_START_SERVICE"
         const val ACTION_STOP_SERVICE = "ACTION_STOP_SERVICE"
 
         private const val NOTIFICATION_ID = 2
         private const val CHANNEL_ID = "CHANNEL_ID_1"
         private const val ACTION_PLAY = "ACTION_PLAY"
-        private const val ACTION_PAUSE = "ACTION_PAUSE"
     }
 
-    private var isPlay = false
-    private var isPause = false
+    private var playStatus = PlayState.PLAY
+
+    private val handler: Handler = Handler(Looper.getMainLooper())
+    private val timerTaskRunnable: Runnable
+    private var playTime: Long = 0
+    lateinit var notificationManager: NotificationManagerCompat
+
+    init {
+        timerTaskRunnable = object : Runnable {
+            override fun run() {
+                if (playStatus == PlayState.PAUSE) {
+                    handler.removeCallbacks(this)
+                } else {
+                    playTime += 1000
+                    handler.postDelayed(this, 1000)
+                    updateNotification(
+                        createNotification(
+                            getRemoteViews(getTime(playTime))
+                        )
+                    )
+                }
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
+        notificationManager = NotificationManagerCompat.from(this)
         createNotificationChannel()
     }
 
@@ -35,9 +65,6 @@ class PlayService: Service() {
             val importance = NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel(CHANNEL_ID, name, importance)
             channel.description = description
-            val notificationManager = getSystemService(
-                NotificationManager::class.java
-            )
             notificationManager.createNotificationChannel(channel)
         }
     }
@@ -51,58 +78,124 @@ class PlayService: Service() {
         return builder.build()
     }
 
-    private fun getRemoteViews(): RemoteViews {
-        val stopIntent = Intent(this, RecordService::class.java)
+    private fun getRemoteViews(time: String): RemoteViews {
+        val stopIntent = Intent(this, PlayService::class.java)
         stopIntent.action = ACTION_STOP_SERVICE
         val stopPendingIntent = PendingIntent.getService(this, 0, stopIntent, 0)
 
-        val playIntent = Intent(this, RecordService::class.java)
+        val playIntent = Intent(this, PlayService::class.java)
         playIntent.action = ACTION_PLAY
         val playPendingIntent = PendingIntent.getService(this, 0, playIntent, 0)
 
         val remoteViews = RemoteViews(packageName, R.layout.notification)
-        remoteViews.setTextViewText(R.id.tv_chronometer, "4:51")
+        remoteViews.setTextViewText(R.id.tv_chronometer, time)
         remoteViews.setTextViewText(R.id.tv_type_work, "${getString(R.string.play)}:")
         remoteViews.setOnClickPendingIntent(R.id.btn_play, playPendingIntent)
         remoteViews.setOnClickPendingIntent(R.id.btn_stop, stopPendingIntent)
-
+        remoteViews.setImageViewResource(R.id.btn_play, playStatus.imageStatus)
         return remoteViews
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         when (intent.action) {
             ACTION_PLAY -> {
-                if (!isPlay) {
-                    Toast.makeText(this, "START", Toast.LENGTH_SHORT).show()
-                    updateNotification(createNotification(getRemoteViews()))
-                    isPlay = true
-                    isPause = false
+                if (playStatus == PlayState.PLAY) {
+                    pause()
+                    stopTimerTask()
+                } else {
+                    if (playStatus == PlayState.PAUSE) play()
+                    startTimerTask()
                 }
-            }
-            ACTION_PAUSE -> {
-                if (!isPause && isPlay) {
-                    Toast.makeText(this, "PAUSE", Toast.LENGTH_SHORT).show()
-                    updateNotification(createNotification(getRemoteViews()))
-                    isPlay = false
-                    isPause = true
-                }
+                startTimerTask()
+                updateNotification(createNotification(getRemoteViews(getTime(playTime))))
 
             }
-            ACTION_START_SERVICE -> startForeground(
-                NOTIFICATION_ID, createNotification(getRemoteViews())
-            )
-            ACTION_STOP_SERVICE -> stopSelf()
+            ACTION_START_SERVICE -> {
+                startForeground(
+                    NOTIFICATION_ID, createNotification(getRemoteViews(getTime(playTime)))
+                )
+                setUpPlayer(intent.getStringExtra("dir").toString())
+                play()
+                startTimerTask()
+            }
+            ACTION_STOP_SERVICE -> {
+                notificationManager.cancel(NOTIFICATION_ID)
+                if (playStatus == PlayState.PLAY) {
+                    playTime = 0
+                    stopPlay()
+                    stopTimerTask()
+                    stopSelf()
+                }
+            }
         }
         return START_NOT_STICKY
     }
 
+
+    private fun pause() {
+        mediaPlayer.pause()
+        playStatus = PlayState.PAUSE
+    }
+
+    lateinit var mediaPlayer: MediaPlayer
+
+    private fun setUpPlayer(dir: String){
+        mediaPlayer = MediaPlayer().apply {
+            setDataSource(dir)
+            setOnCompletionListener { stopPlay() }
+            prepare()
+        }
+    }
+
+    private fun play() {
+        mediaPlayer. start()
+        playStatus = PlayState.PLAY
+    }
+
+    private fun stopPlay() {
+        mediaPlayer.stop()
+        mediaPlayer.prepare()
+        mediaPlayer.seekTo(0)
+        playStatus = PlayState.PAUSE
+        stopSelf()
+    }
+
+
     private fun updateNotification(notification: Notification) {
-        val notificationManager = NotificationManagerCompat.from(this)
         notificationManager.notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun cancelNotification() {
+        notificationManager.cancel(NOTIFICATION_ID)
+    }
+
+    private fun startTimerTask() {
+        stopTimerTask()
+        handler.postDelayed(timerTaskRunnable, 1000)
+    }
+
+    private fun stopTimerTask() {
+        handler.removeCallbacks(timerTaskRunnable)
     }
 
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
+    }
+
+    private fun getTime(millis: Long): String = String.format(
+        "%02d:%02d:%02d",
+        TimeUnit.MILLISECONDS.toHours(millis),
+        TimeUnit.MILLISECONDS.toMinutes(millis) -
+                TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
+        TimeUnit.MILLISECONDS.toSeconds(millis) -
+                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
+    )
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (mediaPlayer.isPlaying) {
+            stopPlay()
+        }
     }
 }

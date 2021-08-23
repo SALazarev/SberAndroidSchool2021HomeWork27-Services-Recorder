@@ -72,8 +72,8 @@ class MainActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
         adapter = RecordsAdapter(emptyList(),
             object : RecordListener {
-                override fun onclick(id: String) {
-                    startPlayService()
+                override fun onclick(fileName: String) {
+                    startPlayService("${viewModel.dir}/$fileName")
                 }
             })
         setRecyclerView(adapter)
@@ -173,9 +173,10 @@ class MainActivity : AppCompatActivity() {
         bindService(intent, connection, Context.BIND_AUTO_CREATE)
     }
 
-    private fun startPlayService() {
+    private fun startPlayService(dir: String) {
         val intent = Intent(this, PlayService::class.java)
         intent.action = PlayService.ACTION_START_SERVICE
+        intent.putExtra("dir",dir)
         startService(intent)
     }
 
