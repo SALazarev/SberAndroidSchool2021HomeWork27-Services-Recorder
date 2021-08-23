@@ -4,7 +4,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.salazarev.hw27servicesrecorder.R
-import com.salazarev.hw27servicesrecorder.play.PlayerRecord
+import com.salazarev.hw27servicesrecorder.play.AudioPlayer
 import java.io.File
 
 class RecordsAdapter(
@@ -39,7 +39,7 @@ class RecordsAdapter(
         rootFile.listFiles()?.map { RecordItem(it.absolutePath) } ?: emptyList()
 
 
-    fun itemPlayStatus(playStatus: PlayerRecord.PlayState, fileName: String) {
+    fun itemPlayStatus(playStatus: AudioPlayer.PlayState, fileName: String) {
         data.find { it.name == fileName }?.let {
             it.playStatus =playStatus
             notifyDataSetChanged()

@@ -210,7 +210,7 @@ class RecordService : Service() {
         return binder
     }
 
-    fun checkIntent(intent: Intent) {
+    private fun checkIntent(intent: Intent) {
         Log.d("TAG", "${intent.action}")
         when (intent.action) {
             ACTION_PLAY -> {

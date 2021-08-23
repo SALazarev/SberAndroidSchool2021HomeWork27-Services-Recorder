@@ -3,6 +3,7 @@ package com.salazarev.hw27servicesrecorder.play
 import android.app.*
 import android.content.Intent
 import android.os.*
+import android.provider.Settings
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -13,6 +14,7 @@ class PlayService : Service() {
     companion object {
         const val ACTION_STOP_SERVICE = "ACTION_STOP_SERVICE"
 
+        const val DIRECTORY_KEY = "dir"
         private const val NOTIFICATION_ID = 2
         private const val CHANNEL_ID = "CHANNEL_ID_1"
         private const val ACTION_PLAY = "ACTION_PLAY"
@@ -21,6 +23,7 @@ class PlayService : Service() {
     private lateinit var playListener: PlayListener
     private val binder = LocalPlayServiceBinder()
 
+    var playTime: Long = 0
 
     private val handler: Handler = Handler(Looper.getMainLooper())
     private val timerTaskRunnable: Runnable
@@ -29,14 +32,14 @@ class PlayService : Service() {
     init {
         timerTaskRunnable = object : Runnable {
             override fun run() {
-                if (playerRecord.playStatus == PlayerRecord.PlayState.PAUSE) {
+                if (audioPlayer.playStatus == AudioPlayer.PlayState.PAUSE) {
                     handler.removeCallbacks(this)
                 } else {
-                    playerRecord.playTime += 1000
+                    playTime += 1000
                     handler.postDelayed(this, 1000)
                     updateNotification(
                         createNotification(
-                            getRemoteViews(getTime(playerRecord.playTime))
+                            getRemoteViews(getTime(playTime))
                         )
                     )
                 }
@@ -51,9 +54,9 @@ class PlayService : Service() {
     }
 
     override fun onBind(intent: Intent): IBinder {
-        val dir = intent.getStringExtra("dir").toString()
-        playerRecord = PlayerRecord(dir)
-        playerRecord.setFinishRecordCallback { this@PlayService.stop() }
+        val dir = intent.getStringExtra(DIRECTORY_KEY).toString()
+        audioPlayer = AudioPlayer(dir)
+        audioPlayer.setFinishRecordCallback { this@PlayService.stop() }
         return binder
     }
 
@@ -65,9 +68,9 @@ class PlayService : Service() {
     private fun checkIntent(intent: Intent) {
         when (intent.action) {
             ACTION_PLAY -> {
-                if (playerRecord.playStatus == PlayerRecord.PlayState.PLAY) pause()
-                else if (playerRecord.playStatus == PlayerRecord.PlayState.PAUSE) play()
-                updateNotification(createNotification(getRemoteViews(getTime(playerRecord.playTime))))
+                if (audioPlayer.playStatus == AudioPlayer.PlayState.PLAY) pause()
+                else if (audioPlayer.playStatus == AudioPlayer.PlayState.PAUSE) play()
+                updateNotification(createNotification(getRemoteViews(getTime(playTime))))
             }
             ACTION_STOP_SERVICE -> {
                 stop()
@@ -115,41 +118,49 @@ class PlayService : Service() {
         remoteViews.setOnClickPendingIntent(R.id.btn_stop, stopPendingIntent)
 
         val imageId =
-            if (playerRecord.playStatus == PlayerRecord.PlayState.PLAY) R.drawable.outline_pause_white_48
+            if (audioPlayer.playStatus == AudioPlayer.PlayState.PLAY) R.drawable.outline_pause_white_48
             else R.drawable.outline_play_arrow_white_48
         remoteViews.setImageViewResource(R.id.btn_play_status, imageId)
         return remoteViews
     }
 
+    private fun getTime(millis: Long): String = String.format(
+        "%02d:%02d:%02d",
+        TimeUnit.MILLISECONDS.toHours(millis),
+        TimeUnit.MILLISECONDS.toMinutes(millis) -
+                TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
+        TimeUnit.MILLISECONDS.toSeconds(millis) -
+                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
+    )
+
+
+
     private fun play() {
         startTimerTask()
-        playerRecord.play()
-        playListener.isPlay(playerRecord.playStatus, playerRecord.fileName)
+        audioPlayer.play()
+        playListener.isPlay(audioPlayer.playStatus, audioPlayer.fileName)
     }
 
-    private lateinit var playerRecord: PlayerRecord
+    private lateinit var audioPlayer: AudioPlayer
     fun startMyService() {
         startForeground(
-            NOTIFICATION_ID, createNotification(getRemoteViews(getTime(playerRecord.playTime)))
+            NOTIFICATION_ID, createNotification(getRemoteViews(getTime(playTime)))
         )
         play()
-        playListener.isPlay(playerRecord.playStatus, playerRecord.fileName)
-        startTimerTask()
     }
 
     private fun pause() {
+        audioPlayer.pause()
         stopTimerTask()
-        playerRecord.pause()
-        playerRecord.playStatus = PlayerRecord.PlayState.PAUSE
-        playListener.isPlay(playerRecord.playStatus, playerRecord.fileName)
+        playListener.isPlay(audioPlayer.playStatus, audioPlayer.fileName)
     }
 
 
     private fun stop() {
+        playTime = 0
         stopTimerTask()
-        playerRecord.stop()
-        playerRecord.playStatus = PlayerRecord.PlayState.STOP
-        playListener.isPlay(playerRecord.playStatus, playerRecord.fileName)
+        audioPlayer.stop()
+        playListener.isPlay(audioPlayer.playStatus, audioPlayer.fileName)
     }
 
     private fun updateNotification(notification: Notification) {
@@ -166,18 +177,9 @@ class PlayService : Service() {
     }
 
 
-    private fun getTime(millis: Long): String = String.format(
-        "%02d:%02d:%02d",
-        TimeUnit.MILLISECONDS.toHours(millis),
-        TimeUnit.MILLISECONDS.toMinutes(millis) -
-                TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
-        TimeUnit.MILLISECONDS.toSeconds(millis) -
-                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
-    )
-
     override fun onDestroy() {
         super.onDestroy()
-        if (playerRecord.playStatus == PlayerRecord.PlayState.PAUSE || playerRecord.playStatus == PlayerRecord.PlayState.PLAY) stop()
+        if (audioPlayer.playStatus == AudioPlayer.PlayState.PAUSE || audioPlayer.playStatus == AudioPlayer.PlayState.PLAY) stop()
     }
 
     inner class LocalPlayServiceBinder : Binder() {

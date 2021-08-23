@@ -18,7 +18,7 @@ import com.salazarev.hw27servicesrecorder.R
 import com.salazarev.hw27servicesrecorder.databinding.ActivityMainBinding
 import com.salazarev.hw27servicesrecorder.play.PlayListener
 import com.salazarev.hw27servicesrecorder.play.PlayService
-import com.salazarev.hw27servicesrecorder.play.PlayerRecord
+import com.salazarev.hw27servicesrecorder.play.AudioPlayer
 import com.salazarev.hw27servicesrecorder.record.RecordService
 import com.salazarev.hw27servicesrecorder.view.rv.RecordItem
 import com.salazarev.hw27servicesrecorder.view.rv.RecordListener
@@ -74,11 +74,11 @@ class MainActivity : AppCompatActivity() {
                 playService = binder.getService()
                 boundPlayService = true
                 playService.setListener(object : PlayListener {
-                    override fun isPlay(playStatus: PlayerRecord.PlayState, fileName: String) {
+                    override fun isPlay(playStatus: AudioPlayer.PlayState, fileName: String) {
                         when (playStatus){
-                           PlayerRecord.PlayState.PLAY ->   adapter.itemPlayStatus(playStatus, fileName)
-                            PlayerRecord.PlayState.PAUSE -> adapter.itemPlayStatus(playStatus, fileName)
-                            PlayerRecord.PlayState.STOP -> {
+                           AudioPlayer.PlayState.PLAY ->   adapter.itemPlayStatus(playStatus, fileName)
+                            AudioPlayer.PlayState.PAUSE -> adapter.itemPlayStatus(playStatus, fileName)
+                            AudioPlayer.PlayState.STOP -> {
                                 adapter.itemPlayStatus(playStatus, fileName)
                                 playUnbind()}
                         }
@@ -216,7 +216,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startPlayService(dir: String) {
         val intent = Intent(this, PlayService::class.java)
-        intent.putExtra("dir",dir)
+        intent.putExtra(PlayService.DIRECTORY_KEY,dir)
         bindService(intent, playConnection, Context.BIND_AUTO_CREATE)
     }
 

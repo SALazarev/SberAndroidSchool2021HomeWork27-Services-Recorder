@@ -1,5 +1,5 @@
 package com.salazarev.hw27servicesrecorder.play
 
 interface PlayListener {
-    fun isPlay(playStatus: PlayerRecord.PlayState, fileName: String)
+    fun isPlay(playStatus: AudioPlayer.PlayState, fileName: String)
 }

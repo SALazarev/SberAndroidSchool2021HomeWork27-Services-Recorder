@@ -3,10 +3,10 @@ package com.salazarev.hw27servicesrecorder.play
 import android.media.MediaPlayer
 import java.io.File
 
-class PlayerRecord(dir: String) {
+class AudioPlayer(dir: String) {
     var playStatus = PlayState.PLAY
     val fileName: String = File(dir).name
-    var playTime: Long = 0
+
 
     private val mediaPlayer: MediaPlayer = MediaPlayer().apply {
         setDataSource(dir)
@@ -25,13 +25,14 @@ class PlayerRecord(dir: String) {
 
     fun pause(){
         mediaPlayer.pause()
+        playStatus = PlayState.PAUSE
     }
 
     fun stop(){
-        playTime = 0
         mediaPlayer.stop()
         mediaPlayer.prepare()
         mediaPlayer.seekTo(0)
+        playStatus = PlayState.STOP
     }
     fun play(){
         mediaPlayer.start()
