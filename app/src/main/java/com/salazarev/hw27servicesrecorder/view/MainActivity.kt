@@ -73,14 +73,14 @@ class MainActivity : AppCompatActivity() {
                 playService = binder.getService()
                 boundPlayService = true
                 playService.setListener(object : PlayListener {
-                    override fun isPlay(isPlay: Boolean, fileName: String) {
-                       if (isPlay){
-                           adapter.itemPlayStatus(isPlay, fileName)
-
-                       } else {
-                           adapter.itemPlayStatus(isPlay, fileName)
-                           playUnbind()
-                       }
+                    override fun isPlay(playStatus: PlayService.Companion.PlayState, fileName: String) {
+                        when (playStatus){
+                            PlayService.Companion.PlayState.PLAY ->   adapter.itemPlayStatus(playStatus, fileName)
+                            PlayService.Companion.PlayState.PAUSE -> adapter.itemPlayStatus(playStatus, fileName)
+                            PlayService.Companion.PlayState.STOP -> {
+                                adapter.itemPlayStatus(playStatus, fileName)
+                                playUnbind()}
+                        }
                     }
                 })
                 playService.startMyService()

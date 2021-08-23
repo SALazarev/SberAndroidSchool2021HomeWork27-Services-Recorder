@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.salazarev.hw27servicesrecorder.R
+import com.salazarev.hw27servicesrecorder.play.PlayService
 import java.io.File
 
 class RecordsAdapter(
@@ -38,16 +39,9 @@ class RecordsAdapter(
         rootFile.listFiles()?.map { RecordItem(it.absolutePath) } ?: emptyList()
 
 
-    fun itemPlayStatus(playStatus: Boolean, fileName: String) {
+    fun itemPlayStatus(playStatus: PlayService.Companion.PlayState, fileName: String) {
         data.find { it.name == fileName }?.let {
-            when (playStatus) {
-                true -> {
-                    it.playStatus = true
-                }
-                false -> {
-                    it.playStatus = false
-                }
-            }
+            it.playStatus =playStatus
             notifyDataSetChanged()
         }
 

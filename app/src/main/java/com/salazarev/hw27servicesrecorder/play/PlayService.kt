@@ -14,9 +14,10 @@ import java.util.concurrent.TimeUnit
 
 class PlayService : Service() {
     companion object {
-        enum class PlayState(val imageStatus: Int) {
-            PLAY(R.drawable.outline_pause_white_48),
-            PAUSE(R.drawable.outline_play_arrow_white_48),
+        enum class PlayState() {
+            PLAY,
+            PAUSE,
+            STOP
         }
 
         const val ACTION_START_SERVICE = "ACTION_START_SERVICE"
@@ -99,7 +100,10 @@ class PlayService : Service() {
         remoteViews.setTextViewText(R.id.tv_type_work, "${getString(R.string.play)}:")
         remoteViews.setOnClickPendingIntent(R.id.btn_play_status, playPendingIntent)
         remoteViews.setOnClickPendingIntent(R.id.btn_stop, stopPendingIntent)
-        remoteViews.setImageViewResource(R.id.btn_play_status, playStatus.imageStatus)
+
+        val imageId =
+            if (playStatus == PlayState.PLAY) R.drawable.outline_pause_white_48 else R.drawable.outline_play_arrow_white_48
+        remoteViews.setImageViewResource(R.id.btn_play_status, imageId)
         return remoteViews
     }
 
@@ -114,7 +118,7 @@ class PlayService : Service() {
                 if (playStatus == PlayState.PLAY) {
                     pause()
                     stopTimerTask()
-                    playListener.isPlay(false, fileName)
+                    playListener.isPlay(PlayState.PAUSE, fileName)
                 } else {
                     if (playStatus == PlayState.PAUSE) play()
                     startTimerTask()
@@ -125,22 +129,22 @@ class PlayService : Service() {
             }
             ACTION_STOP_SERVICE -> {
                 notificationManager.cancel(NOTIFICATION_ID)
-                    playTime = 0
-                    stopPlay()
-                    stopTimerTask()
-                    playListener.isPlay(false, fileName)
+                playTime = 0
+                stopPlay()
+                stopTimerTask()
+                playListener.isPlay(PlayState.STOP, fileName)
             }
         }
     }
 
-    fun startMyService(){
+    fun startMyService() {
         startForeground(
             NOTIFICATION_ID, createNotification(getRemoteViews(getTime(playTime)))
         )
         fileName = File(dir).name
         setUpPlayer(dir)
         play()
-        playListener.isPlay(true, fileName)
+        playListener.isPlay(PlayState.PLAY, fileName)
         startTimerTask()
     }
 
@@ -156,7 +160,7 @@ class PlayService : Service() {
             setDataSource(dir)
             setOnCompletionListener {
                 stopPlay()
-                playListener.isPlay(false, fileName)
+                playListener.isPlay(PlayState.PAUSE, fileName)
             }
             prepare()
         }
@@ -217,7 +221,7 @@ class PlayService : Service() {
             playTime = 0
             stopPlay()
             stopTimerTask()
-            playListener.isPlay(false,fileName)
+            playListener.isPlay(PlayState.STOP, fileName)
         }
         return super.onUnbind(intent)
     }

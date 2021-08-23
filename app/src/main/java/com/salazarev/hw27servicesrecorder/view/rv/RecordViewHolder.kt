@@ -6,6 +6,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.salazarev.hw27servicesrecorder.R
 import com.salazarev.hw27servicesrecorder.databinding.ItemRecordBinding
+import com.salazarev.hw27servicesrecorder.play.PlayService
 
 class RecordViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
@@ -21,6 +22,10 @@ class RecordViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
     fun bindView(recordItem: RecordItem, clickListener: View.OnClickListener) {
        itemView.setOnClickListener(clickListener)
         nameRecordTv.text= recordItem.name
-        if (recordItem.playStatus) playStatusIv.setImageResource(R.drawable.outline_pause_24) else playStatusIv.setImageResource(0)
+        when (recordItem.playStatus){
+            PlayService.Companion.PlayState.PLAY -> playStatusIv.setImageResource(R.drawable.outline_pause_24)
+            PlayService.Companion.PlayState.PAUSE -> playStatusIv.setImageResource(R.drawable.outline_play_arrow_24)
+            PlayService.Companion.PlayState.STOP -> playStatusIv.setImageResource(0)
+        }
     }
 }
